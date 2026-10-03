@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simple Stock Flow — Sistema de Inventario y Ventas</title>
+  <meta name="description" content="Sistema de inventario y ventas: catálogo con stock real, registro de ventas que descuenta existencias, reporte por rango de fechas inmutable y control por roles.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%234338ca'/><path d='M9 20.5l4.5-5 3.5 3.5 6-7.5' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar__row">
+    <div class="brand">
+      <span class="brand__mark">SSF</span>
+      <span class="brand__name">Simple Stock Flow</span>
+    </div>
+
+    <nav class="nav">
+      <a href="#que-hace">Qué hace</a>
+      <a href="#como-esta-hecho">Cómo está hecho</a>
+      <a href="#levantarlo">Cómo levantarlo</a>
+      <a href="#repositorios">Repositorios</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="container hero__grid">
+      <div class="hero__text">
+        <h1>Saber qué hay para vender, y qué se ha vendido.</h1>
+        <p class="lede">
+          Un sistema de inventario y ventas que responde las dos preguntas sin contar a mano: el stock que muestra el catálogo es el stock que hay, y el reporte de un período cerrado dice hoy lo mismo que dirá dentro de un año.
+        </p>
+        <div class="actions">
+          <a class="button button--primary" href="#levantarlo">Levantar con Docker</a>
+          <a class="button button--soft" href="#como-esta-hecho">Ver arquitectura</a>
+        </div>
+      </div>
+
+      <div class="hero__card">
+        <div class="card-feature">
+          <div class="tag">Principio Central</div>
+          <h3>Invariantes Innegociables</h3>
+          <ul>
+            <li><strong>Stock Real:</strong> Descuento atómico de existencias con prevención de condiciones de carrera (409 Conflict).</li>
+            <li><strong>Inmutabilidad:</strong> Una venta registrada no se altera ni se borra.</li>
+            <li><strong>Baja Lógica:</strong> Los productos vendidos se dan de baja, preservando el histórico.</li>
+            <li><strong>Cálculo en Demanda:</strong> Ni total ni subtotal se almacenan en base de datos.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="que-hace" class="section">
+    <div class="container">
+      <h2>Qué hace el sistema</h2>
+      <p class="section-sub">Cuatro módulos esenciales con reglas de negocio estrictas:</p>
+
+      <div class="grid-features">
+        <article class="card">
+          <div class="card-icon">📦</div>
+          <h3>Catálogo Comercial</h3>
+          <p>
+            Búsqueda por texto insensible a mayúsculas y filtro por categorías. Productos con nombre, precio, existencias e imagen. Los productos dados de baja desaparecen del catálogo activo.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="card-icon">🛒</div>
+          <h3>Punto de Venta (POS)</h3>
+          <p>
+            Carrito multi-línea con validación inmediata de existencias. Descuento atómico y concurrente: dos cajas no pueden vender simultáneamente la última unidad.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="card-icon">📄</div>
+          <h3>Historial de Ventas</h3>
+          <p>
+            Consulta de transacciones por rango de fechas. Cada línea congela el precio unitario y el nombre del producto al momento exacto de la venta.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="card-icon">📊</div>
+          <h3>Reportes de Ventas</h3>
+          <p>
+            Agregación resuelta 100% en el motor PostgreSQL. Agrupado por producto y categoría congelada, calculando unidades vendidas y recaudación total.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="como-esta-hecho" class="section section--alt">
+    <div class="container">
+      <h2>Cómo está hecho</h2>
+      <p class="section-sub">Desarrollo guiado por especificación (SDD) sobre Arquitectura Hexagonal</p>
+
+      <div class="grid-arch">
+        <div class="arch-box">
+          <span class="arch-badge">Backend</span>
+          <h3>PHP con Laravel (Arquitectura Hexagonal)</h3>
+          <ul>
+            <li><strong>Dominio Puro:</strong> Entidades (<code>Product</code>, <code>Sale</code>), Value Objects (<code>Money</code>, <code>Quantity</code>, <code>DateRange</code>) sin dependencias externas.</li>
+            <li><strong>Casos de Uso:</strong> Orquestación desacoplada (1 acción = 1 clase).</li>
+            <li><strong>PostgreSQL 16:</strong> Esquema propio <code>sales</code>, tablas en singular (<code>product</code>, <code>sale</code>, etc.).</li>
+            <li><strong>Seguridad:</strong> Tokens JWT con expiración y control de roles (<code>admin</code> y <code>seller</code>).</li>
+          </ul>
+        </div>
+
+        <div class="arch-box">
+          <span class="arch-badge">Frontend</span>
+          <h3>React + Vite</h3>
+          <ul>
+            <li>Interfaz SPA rápida y reactiva con TypeScript.</li>
+            <li>Punto de venta interactivo con carrito y verificación de existencias.</li>
+            <li>Filtros dinámicos y reportes con intervalos de fechas.</li>
+            <li>Nginx como Reverse Proxy hacia la API (sin problemas de CORS).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="levantarlo" class="section">
+    <div class="container">
+      <h2>Cómo levantarlo en tu máquina</h2>
+      <p class="section-sub">Requisito único: tener instalado <strong>Docker</strong></p>
+
+      <div class="code-card">
+        <pre><code># 1. Entrar al repositorio de infraestructura
+cd test-simple-stock-flow-infra
+
+# 2. Configurar variables de entorno
+cp .env.example .env
+
+# 3. Levantar la pila completa
+docker compose up -d --wait</code></pre>
+      </div>
+
+      <p class="note">
+        El portal web quedará disponible en <strong>http://localhost:8080</strong>.<br>
+        Credenciales del administrador inicial: <code>admin</code> / <code>Admin123*</code>
+      </p>
+    </div>
+  </section>
+
+  <section id="repositorios" class="section section--alt">
+    <div class="container">
+      <h2>Los 6 Repositorios del Proyecto</h2>
+      <div class="repos-table-box">
+        <table class="repos-table">
+          <thead>
+            <tr>
+              <th>Repositorio</th>
+              <th>Propósito</th>
+              <th>Tecnología</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>test-simple-stock-flow-docs</code></td>
+              <td>Especificación técnica formal y principios innegociables</td>
+              <td>Markdown (SDD)</td>
+            </tr>
+            <tr>
+              <td><code>test-simple-stock-flow-api</code></td>
+              <td>Backend REST y dueño del esquema de datos</td>
+              <td>PHP 8.2 / Laravel</td>
+            </tr>
+            <tr>
+              <td><code>test-simple-stock-flow-app</code></td>
+              <td>Portal web y punto de venta</td>
+              <td>React / Vite / TypeScript</td>
+            </tr>
+            <tr>
+              <td><code>test-simple-stock-flow-infra</code></td>
+              <td>Orquestación de contenedores y redes</td>
+              <td>Docker Compose / PostgreSQL 16</td>
+            </tr>
+            <tr>
+              <td><code>test-simple-stock-flow-page</code></td>
+              <td>Sitio estático público de presentación</td>
+              <td>HTML5 / CSS3</td>
+            </tr>
+            <tr>
+              <td><code>test-simple-stock-flow-tool</code></td>
+              <td>Utilidad para sembrar datos demo de prueba</td>
+              <td>Node.js / REST API Client</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>Simple Stock Flow · Prueba Técnica SDD · Ficha ADSO 3413974</p>
+  </div>
+</footer>
+
+</body>
+</html>
